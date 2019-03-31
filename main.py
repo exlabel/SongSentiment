@@ -1,8 +1,6 @@
 import io
 import os
 from sys import argv as args
-import random
-import string
 
 # Imports the Google Cloud client library
 from google.cloud import speech
