@@ -1,6 +1,7 @@
 import io
 import os
 from sys import argv as args
+import subprocess
 
 # Imports the Google Cloud client library
 from google.cloud import speech
@@ -21,6 +22,7 @@ fileName = 'final.flac'
 
 inputFile = os.path.abspath(args[1])
 os.system('ffmpeg -i ' + inputFile + ' -ac 1 -sample_fmt s16 -f flac ' + fileName + ' >/dev/null 2>&1')
+
 
 
 # Loads the audio into memory
@@ -46,7 +48,7 @@ response = operation.result(timeout=150)
 text = ''
 
 response = client.recognize(config, audio)
-os.system('rm ' + fileName)
+
 for result in response.results:
     text += result.alternatives[0].transcript
 if (len(response.results) == 0):
@@ -64,5 +66,12 @@ document = language_types.Document(
 # Detects the sentiment of the text
 sentiment = lang_client.analyze_sentiment(document=document).document_sentiment
 
-print('{},{}'.format(sentiment.score, sentiment.magnitude))
+# print('{},{}'.format(sentiment.score, sentiment.magnitude))
 print('{}'.format(text))
+
+args=("ffprobe","-v", "error", "-show_entries", "format=duration","-of", "default=noprint_wrappers=1:nokey=1",fileName)
+popen = subprocess.Popen(args, stdout = subprocess.PIPE)
+popen.wait()
+length = popen.stdout.read()
+print(length)
+os.system('rm ' + fileName)
