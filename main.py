@@ -16,14 +16,12 @@ client = speech.SpeechClient()
 
 fileName = ''.join(random.choices(string.ascii_uppercase, k=13)).join('.flac')
 
-os.system('ffmpeg -i ' + args[1] + ' -ac 1 -sample_fmt s16 -f flac ' + fileName)
-# The name of the audio file to transcribe
-file_name = os.path.join(
-    os.path.dirname(__file__),
-    fileName)
+inputFile = os.path.abspath(args[1])
+os.system('ffmpeg -i ' + inputFile + ' -ac 1 -sample_fmt s16 -f flac ' + fileName + ' >/dev/null 2>&1')
+
 
 # Loads the audio into memory
-with io.open(file_name, 'rb') as audio_file:
+with io.open(fileName, 'rb') as audio_file:
     content = audio_file.read()
     if len(args) > 2:
         pass #Here we will make it work with URLs so we can work with audio files longer than a minute
@@ -46,3 +44,7 @@ response = operation.result(timeout=150)
 response = client.recognize(config, audio)
 for result in response.results:
     print('Transcript: {}'.format(result.alternatives[0].transcript))
+if (len(response.results) == 0):
+	print('sux')
+
+# use results to do sentiment analysis
