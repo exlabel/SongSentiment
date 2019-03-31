@@ -1,7 +1,21 @@
+import uuid
 import io
 import os
+import sys
 from sys import argv as args
 import subprocess
+import numpy as np
+stderr = sys.stderr
+sys.stderr = open(os.devnull, 'w')
+from keras.models import Sequential, Model, load_model
+sys.stderr = stderr
+
+import firebase_admin
+from firebase_admin import credentials
+from firebase_admin import storage
+
+import cv2
+from PIL import Image
 
 # Imports the Google Cloud client library
 from google.cloud import speech
@@ -52,7 +66,8 @@ response = client.recognize(config, audio)
 for result in response.results:
     text += result.alternatives[0].transcript
 if (len(response.results) == 0):
-    print('sux to succ')
+	text = "this is a neutral statement, much wow"
+    # print('sux to succ')
 
 # use results to do sentiment analysis
 
@@ -66,18 +81,17 @@ document = language_types.Document(
 # Detects the sentiment of the text
 sentiment = lang_client.analyze_sentiment(document=document).document_sentiment
 
-# print('{},{}'.format(sentiment.score, sentiment.magnitude))
-print('{}'.format(text))
+print('{},{}'.format(sentiment.score, sentiment.magnitude))
+
 args=("ffprobe","-v", "error", "-show_entries", "format=duration","-of", "default=noprint_wrappers=1:nokey=1",fileName)
 popen = subprocess.Popen(args, stdout = subprocess.PIPE)
 popen.wait()
 length = popen.stdout.read()
-print(length)
-os.system('rm ' + fileName)
+length = length[:-1]
 
 # --- nicks code --- #
 sentiment = (sentiment.score, sentiment.magnitude)
-length = int(length)
+length = float(length)
 FPS = 30
 NEG_COLOR = np.array([1, 0.2, 0.9])
 POS_COLOR = np.array([0.7, 0.9, 0.2])
@@ -112,32 +126,51 @@ neg_weight = max((1 - sentiment[0] - 0.5), 0)*2
 sent_color = NEG_COLOR * neg_weight + POS_COLOR * pos_weight
 noise_vec = np.random.normal(0, 1, (1, latent_dim))
 
-for i in range(FPS * length):
+for i in range(int(FPS * length)):
     noise_vec = change_noise(noise_vec)
     gen_img = model.predict(noise_vec)
     gen_img = gen_img[0]
     print(gen_img)
     gen_img = (0.5 * gen_img + 0.5)*255
-    it = np.nditer(gen_img, flags=['multi_index'],op_flags=['readwrite'])
+    # it = np.nditer(gen_img, flags=['multi_index'],op_flags=['readwrite'])
     for x in range(gen_img.shape[0]):
         for y in range(gen_img.shape[1]):
             gen_img[x,y]*=sent_color
 
     tiled = tile_image(gen_img, 12, 16)
-    cv2.imshow("image", tiled)
+    # cv2.imshow("image", tiled)
     #cv2.imwrite("image.jpg", tiled)
-    #print(tiled.shape)
+    print(tiled.shape)
     out.write(tiled)
-    #print("image")
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        continue
+    print("image")
+    # if cv2.waitKey(1) & 0xFF == ord('q'):
+        # continue
 
 out.release()
 
 # add audio in the sketchiest possible way
 from moviepy.editor import *
 clip = VideoFileClip("output.avi")
-audioclip = AudioFileClip("final.flac")
+audioclip = AudioFileClip(fileName)
 with_audio = clip.set_audio(audioclip)
-clip.write_videofile("music_vid.mp4")
 
+video_file_name = "music_vid_" + uuid.uuid4() + ".mp4"
+
+clip.write_videofile(video_file_name)
+
+file_name = video_file_name
+cred = credentials.Certificate('cloudconfig.json')
+firebase_admin.initialize_app(cred, {
+    'storageBucket': 'nolabel-b9748.appspot.com'
+})
+bucket = storage.bucket()
+blob = bucket.blob(file_name)
+
+blob.upload_from_filename(file_name)
+
+url = "https://firebasestorage.googleapis.com/v0/b/nolabel-b9748.appspot.com/o/" + file_name + "?alt=media"
+
+print("=============================")
+print('{}'.format(text))
+print("=============================")
+print(url)
