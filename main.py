@@ -42,6 +42,7 @@ response = operation.result(timeout=150)
 """
 
 response = client.recognize(config, audio)
+os.system('rm ' + fileName)
 for result in response.results:
     print('Transcript: {}'.format(result.alternatives[0].transcript))
 if (len(response.results) == 0):
