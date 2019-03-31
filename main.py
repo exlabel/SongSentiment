@@ -14,7 +14,7 @@ os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.abspath("cloudconfig.json
 # Instantiates a client
 client = speech.SpeechClient()
 
-fileName = ''.join(random.choices(string.ascii_uppercase, k=13)).join('.flac')
+fileName = 'final.flac'
 
 inputFile = os.path.abspath(args[1])
 os.system('ffmpeg -i ' + inputFile + ' -ac 1 -sample_fmt s16 -f flac ' + fileName + ' >/dev/null 2>&1')
@@ -44,8 +44,8 @@ response = operation.result(timeout=150)
 response = client.recognize(config, audio)
 os.system('rm ' + fileName)
 for result in response.results:
-    print('Transcript: {}'.format(result.alternatives[0].transcript))
+    print('{}'.format(result.alternatives[0].transcript))
 if (len(response.results) == 0):
-	print('sux')
+	print('sux to succ')
 
 # use results to do sentiment analysis
